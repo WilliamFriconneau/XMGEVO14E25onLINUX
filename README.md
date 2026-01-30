@@ -3,9 +3,9 @@
 Ce dépôt contient les optimisations et paramètres spécifiques pour le XMG EVO 14 (châssis xmgw) fonctionnant sous CachyOS.
 
 ## Spécifications Matérielles
-- **CPU** : AMD Ryzen 7 255 (Zen 4)[cite: 1].
-- **GPU** : AMD Radeon 780M (RDNA 3)[cite: 1].
-- **Écran** : 2880x1800 @ 120Hz[cite: 1].
+- **CPU** : AMD Ryzen 7 255 (Zen 4).
+- **GPU** : AMD Radeon 780M (RDNA 3).
+- **Écran** : 2880x1800 @ 120Hz.
 - **Bluetooth** : Intel AX210.
 
 ## Paramètres du Noyau (Command Line)
