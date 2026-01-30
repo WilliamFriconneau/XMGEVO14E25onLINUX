@@ -1,18 +1,18 @@
-# XMG EVO 14 (E24) - Configuration système CachyOS
+# XMG EVO 14 (E24) - CachyOS System Configuration
 
-Modifications appliquées pour optimiser la consommation, la stabilité et contourner certains bugs firmware/BIOS.
+Tweaks applied to optimize power consumption, stability and work around firmware/BIOS bugs.
 
-## Matériel
+## Hardware
 
-| Composant | Détail |
+| Component | Detail |
 |-----------|--------|
-| Modèle | XMG EVO 14 (E24) |
+| Model | XMG EVO 14 (E24) |
 | CPU | AMD Ryzen 7 8845HS (Hawk Point) |
 | GPU | AMD Radeon 780M (RDNA3 iGPU) |
 | WiFi/BT | Intel AX210 |
 | OS | CachyOS (Arch-based) |
 
-## Paramètres kernel
+## Kernel Parameters
 
 ```
 quiet nowatchdog splash rw
@@ -30,60 +30,64 @@ amdgpu.abmlevel=0
 module_blacklist=ucsi_acpi
 ```
 
-### Détail des paramètres
+### Parameters Breakdown
 
-#### Général
+#### General
 
-| Paramètre | Rôle |
-|-----------|------|
-| `nowatchdog` | Désactive le watchdog matériel, économise ~0.5W |
-| `rcutree.enable_rcu_lazy=1` | RCU lazy callbacks, réduit les wakeups CPU |
+| Parameter | Purpose |
+|-----------|---------|
+| `nowatchdog` | Disables hardware watchdog, saves ~0.5W |
+| `rcutree.enable_rcu_lazy=1` | RCU lazy callbacks, reduces CPU wakeups |
 
 #### LUKS + TPM2
 
-| Paramètre | Rôle |
-|-----------|------|
-| `rd.luks.options=discard,tpm2-device=auto` | Déchiffrement auto via TPM2 + TRIM passthrough |
-| `resume_offset=1768678` | Offset du swapfile pour hibernation sur BTRFS |
+| Parameter | Purpose |
+|-----------|---------|
+| `rd.luks.options=discard,tpm2-device=auto` | Auto-unlock via TPM2 + TRIM passthrough |
+| `resume_offset=1768678` | Swapfile offset for hibernation on BTRFS |
 
-#### AMD GPU (contournements bugs)
+#### AMD GPU (bug workarounds)
 
-| Paramètre | Rôle |
-|-----------|------|
-| `amd_pstate=active` | Driver pstate actif (EPP, meilleure gestion power) |
-| `amdgpu.dcdebugmask=0x610` | Contourne bugs display controller |
-| `amdgpu.sg_display=0` | Désactive scatter-gather display (instabilité) |
-| `amdgpu.dcfeaturemask=0x8` | Désactive certaines features DC problématiques |
-| `amdgpu.abmlevel=0` | Désactive Adaptive Backlight Management |
+| Parameter | Purpose |
+|-----------|---------|
+| `amd_pstate=active` | Active pstate driver (EPP, better power management) |
+| `amdgpu.dcdebugmask=0x610` | Fixes visual artifacts/glitches in Firefox, Chrome and randomly elsewhere |
+| `amdgpu.sg_display=0` | Disables scatter-gather display (causes instability) |
+| `amdgpu.dcfeaturemask=0x8` | Disables problematic DC features |
+| `amdgpu.abmlevel=0` | Disables Adaptive Backlight Management |
 
-#### Blacklist module
+#### Module Blacklist
 
-| Paramètre | Rôle |
-|-----------|------|
-| `module_blacklist=ucsi_acpi` | Contourne bug UCSI causant des erreurs ACPI et empêchant les états C profonds |
+| Parameter | Purpose |
+|-----------|---------|
+| `module_blacklist=ucsi_acpi` | Works around UCSI bug causing ACPI errors and preventing deep C-states |
 
-## Règles udev
+## Udev Rules
 
-**Fichier** : `/etc/udev/rules.d/60-io-schedulers.rules`
+**File**: `/etc/udev/rules.d/60-io-schedulers.rules`
 
 ```udev
-# HDD : BFQ (optimisé latence rotating)
+# HDD: BFQ (optimized for rotational latency)
 ACTION=="add|change", KERNEL=="sd[a-z]*", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="bfq"
 
-# SSD SATA/eMMC : ADIOS
+# SATA SSD/eMMC: ADIOS
 ACTION=="add|change", KERNEL=="sd[a-z]*|mmcblk[0-9]*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="adios"
 
-# NVMe : ADIOS
+# NVMe: ADIOS
 ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="adios"
 ```
 
-ADIOS est le scheduler I/O par défaut de CachyOS, optimisé pour SSD/NVMe avec faible overhead.
+ADIOS is CachyOS default I/O scheduler, optimized for SSD/NVMe with low overhead.
 
 ## Modprobe
 
 ### `amdgpu-tuxedo-fix.conf`
 
-Contient probablement des options spécifiques pour contourner des problèmes avec le BIOS Tuxedo/XMG.
+```
+options amdgpu dcdebugmask=0x610
+```
+
+Fixes random visual artifacts (glitches) appearing mainly in Firefox and Chrome with GPU acceleration. Duplicated in kernel cmdline to ensure earliest possible application.
 
 ### `no-ucsi.conf`
 
@@ -91,43 +95,43 @@ Contient probablement des options spécifiques pour contourner des problèmes av
 blacklist ucsi_acpi
 ```
 
-Redondant avec `module_blacklist` kernel mais assure le blacklist même si cmdline modifiée.
+Redundant with kernel `module_blacklist` but ensures blacklisting even if cmdline is modified.
 
-## Configuration KDE
+## KDE Configuration
 
-### Entrée (souris/touchpad)
+### Input (mouse/touchpad)
 
-| Paramètre | Valeur | Effet |
-|-----------|--------|-------|
-| `AccelerationProfile` | Flat | Accélération linéaire (1:1) |
-| `PointerAcceleration` | 0 | Pas de modificateur de vitesse |
-| `VirtualDesktop3FingerGesture` | true | Changement bureau avec 3 doigts |
+| Parameter | Value | Effect |
+|-----------|-------|--------|
+| `AccelerationProfile` | Flat | Linear acceleration (1:1) |
+| `PointerAcceleration` | 0 | No speed modifier |
+| `VirtualDesktop3FingerGesture` | true | Switch desktop with 3-finger swipe |
 
-## Problèmes connus
+## Known Issues
 
-### Consommation idle élevée (~10W au lieu de ~5W)
+### High idle power consumption (~10W instead of ~5W)
 
-**Causes identifiées** :
-- Bug BIOS empêchant certains états PC6/C6
-- Périphériques PCIe ne passant pas en ASPM L1.2
-- Tokens LUKS-TPM corrompus causant des retries
+**Identified causes**:
+- BIOS bug preventing some PC6/C6 states
+- PCIe devices not entering ASPM L1.2
+- Corrupted LUKS-TPM tokens causing retries
 
-**Diagnostic** :
+**Diagnostics**:
 ```bash
 sudo powertop
 cat /sys/kernel/debug/pmc_core/package_cstate_show
 ```
 
-## Historique
+## Changelog
 
-| Date | Modification |
-|------|--------------|
-| 2025-01-28 | Ajout `amdgpu-tuxedo-fix.conf` |
-| 2025-01-29 | Création `tuned.conf` (vide) |
-| 2025-01-30 | Blacklist `ucsi_acpi` (kernel + modprobe) |
+| Date | Change |
+|------|--------|
+| 2025-01-28 | Added `amdgpu-tuxedo-fix.conf` |
+| 2025-01-29 | Created `tuned.conf` (empty) |
+| 2025-01-30 | Blacklisted `ucsi_acpi` (kernel + modprobe) |
 
-## Références
+## References
 
-- [XMG EVO 14 sur ArchWiki](https://wiki.archlinux.org/title/Laptop/Schenker)
+- [XMG EVO 14 on ArchWiki](https://wiki.archlinux.org/title/Laptop/Schenker)
 - [AMD GPU kernel parameters](https://docs.kernel.org/gpu/amdgpu/module-parameters.html)
 - [CachyOS optimizations](https://cachyos.org/)
